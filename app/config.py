@@ -54,6 +54,8 @@ KNOWN_FACES_DIR: Path = ROOT / _env("KNOWN_FACES_DIR", "data/known_faces")
 
 # --- API limits ---
 MAX_FILE_MB: int = _env_int("MAX_FILE_MB", 10)
+MAX_VIDEO_MB: int = _env_int("MAX_VIDEO_MB", 100)
+MAX_VIDEO_FRAMES: int = _env_int("MAX_VIDEO_FRAMES", 900)
 MAX_IMAGE_SIDE: int = _env_int("MAX_IMAGE_SIDE", 1280)
 
 # --- Model download URLs (OpenCV Zoo) ---

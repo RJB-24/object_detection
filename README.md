@@ -1,209 +1,206 @@
-# VisionAI — Object Detection + Face Recognition 🎯🧑
+# VisionAI — Visual Intelligence Platform 🎯
 
-A **fully deployable image-processing project**: generic **object detection** (YOLOv8, 80 COCO classes)
-plus **face detection + face recognition** (YuNet + SFace) behind one FastAPI service with a web demo UI,
-Docker support, and one-command cloud deploys.
+A production-style **image-processing platform**: YOLOv8 **object detection**, YuNet + SFace
+**face recognition**, **video analysis**, run **history**, gallery **calibration** and
+**model fine-tuning** — behind one FastAPI service with a modern React dashboard.
 
-Built for an image-processing course project: accurate out-of-the-box on CPU, no dlib/conda pain,
-clean code you can explain in a viva/report.
+Built as a serious image-processing project: real models, real metrics, reproducible
+training, and one-command deployment.
 
 ---
 
-## ✨ What it does
+## ✨ Capabilities
 
-| Feature | Model | Notes |
-|---|---|---|
-| 📦 Object detection | **YOLOv8** (`yolov8n/s/m/l`) | 80 classes (person, car, dog, …), boxes + confidence |
-| 😐 Face detection | **YuNet** (OpenCV Zoo ONNX) | Fast, accurate, CPU-friendly |
-| 🧑 Face recognition | **SFace** embeddings + cosine match | Register your own gallery, tunable threshold |
-| ✦ Combined analysis | YOLO + YuNet/SFace | One `/api/analyze` call does everything |
-| 🖥️ Web demo | Served at `/` | Upload / drag-drop / webcam / gallery management |
-| 🐳 Deploy | Dockerfile + Compose + Render | CPU-only friendly |
+| Area | What you get |
+|---|---|
+| 📦 Object detection | YOLOv8 (80 COCO classes out of the box), tunable conf/IoU, switchable checkpoints |
+| 🧑 Face recognition | YuNet detection + SFace embeddings, persistent gallery, cosine matching |
+| 🎬 Video analysis | Background jobs, sampled-frame inference, annotated MP4 + timeline charts |
+| 🧪 Fine-tuning | Train YOLO on your own dataset from the UI or CLI, auto-registered weights |
+| 🎯 Calibration | Data-driven face-match threshold (FAR/FRR, ROC, max-margin suggestion) |
+| 📊 Dashboard | Stats, latency trends, recent runs, model status |
+| 🗂️ History | Every image run logged (SQLite) with thumbnails |
+| 🐳 Deploy | Multi-stage Docker (React + FastAPI in one container), Compose, Render |
 
-## 🗂️ Project structure
+## 🖥️ The web app
 
-```
-.
-├── app/
-│   ├── main.py              # FastAPI app + routes + UI mount
-│   ├── config.py            # env-overridable settings
-│   ├── schemas.py           # pydantic schemas
-│   ├── detectors/
-│   │   ├── object_detector.py  # YOLOv8 wrapper (lazy singleton)
-│   │   └── face.py             # YuNet detector + SFace recognizer
-│   ├── services/
-│   │   ├── inference.py     # orchestration: detect/recognize/analyze/register
-│   │   └── face_db.py       # persistent known-face embedding store (pickle)
-│   ├── utils/               # image decode/encode, annotation drawing
-│   └── static/              # demo UI (index.html/app.js/styles.css)
-├── scripts/
-│   ├── download_models.py   # fetch YuNet + SFace + YOLO weights
-│   ├── register_faces.py    # bulk CLI registration from folders
-│   └── demo.py              # local CLI inference (no server)
-├── tests/                   # pytest (mocked API + real unit tests)
-├── data/known_faces/        # <Name>/*.jpg gallery (also via web UI)
-├── models/                  # downloaded weights (git-ignored)
-├── Dockerfile  docker-compose.yml  render.yaml  Makefile
-└── requirements.txt
-```
+| Page | Purpose |
+|---|---|
+| **Dashboard** | Totals, latency trend, runs-by-task, recent runs, model status |
+| **Image Analysis** | Combined / objects / faces on uploads, annotated output + tables |
+| **Video Analysis** | Upload video → live progress + logs → stats, charts, downloadable MP4 |
+| **Face Gallery** | Enroll identities, per-identity quality, threshold calibration charts |
+| **Fine-tune** | Dataset prep/validation, training jobs with live logs, model registry |
+| **Run History** | Filterable log of all runs with previews |
 
-## 🚀 Quickstart (local)
+## 🏗️ Architecture
 
-```bash
-# 1. Install
-pip install -r requirements.txt
-
-# 2. Download weights (~50 MB face models + YOLO auto-fetch)
-python scripts/download_models.py
-
-# 3. Run the server
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Open:
-- **Demo UI → http://localhost:8000**
-- **Interactive API docs → http://localhost:8000/docs**
-- Health check → `GET /api/health`
-
-### CLI demo (no server)
-
-```bash
-python scripts/demo.py photo.jpg                 # combined
-python scripts/demo.py photo.jpg --objects-only
-python scripts/demo.py photo.jpg --faces-only --save outputs/out.jpg
+```mermaid
+flowchart LR
+    subgraph Client["React dashboard (TypeScript + Tailwind)"]
+        UI[Pages & charts]
+    end
+    subgraph API["FastAPI service"]
+        IMG[Image inference]
+        VID[Video jobs]
+        TRN[Training jobs]
+        CAL[Calibration]
+        REG[Model registry]
+        HIS[(SQLite history)]
+    end
+    subgraph Models["Models (CPU/GPU)"]
+        YOLO[YOLOv8 .pt]
+        YU[YuNet .onnx]
+        SF[SFace .onnx]
+    end
+    UI <--> IMG & VID & TRN & CAL & REG
+    IMG --> YOLO & YU & SF
+    VID --> YOLO & YU & SF
+    TRN --> YOLO
+    IMG --> HIS
 ```
 
-## 🧑 Face recognition walkthrough
+**Key design decisions**
+- Lazy singletons: weights load on first use; `/api/health` always answers.
+- Graceful degradation: `/api/analyze` returns partial results + warnings if one branch is unavailable.
+- Thread-safe inference under uvicorn; long tasks (video/training) run as tracked background jobs.
+- Face pipeline: detect → alignCrop → embed → cosine-NN vs gallery, with calibrated threshold.
 
-1. **Register** — in the UI's *Gallery* tab (or `POST /api/faces/register`): name + 2–5 clear,
-   front-facing photos per person. Different lighting/angles help.
-2. **Recognize** — *Analyze* or *Faces* tab, or `POST /api/recognize/faces`.
-3. **Tune** — match threshold default `0.363` (OpenCV's SFace cosine recommendation):
-   - Too many "Unknown"? lower to ~0.30.
-   - Wrong names? raise to ~0.40–0.45 and add more photos per person.
+## 🚀 Quickstart
 
-Bulk CLI alternative:
-
-```bash
-mkdir -p data/known_faces/Ada data/known_faces/Bob
-# ... copy 2-5 jpgs into each ...
-python scripts/register_faces.py
-```
-
-Embeddings persist in `data/face_db.pkl` (mounted as a volume in Docker so you don't lose them).
-
-## 📡 API reference
-
-| Method & path | Input | Output |
-|---|---|---|
-| `GET /api/health` | — | status, model load state, identities |
-| `GET /api/labels/objects` | — | 80 COCO class names |
-| `POST /api/detect/objects?conf=0.25&iou=0.45` | `file` ⬆ | boxes, labels, annotated image (base64) |
-| `POST /api/detect/faces` | `file` ⬆ | face boxes + landmarks, annotated image |
-| `POST /api/recognize/faces?threshold=0.363` | `file` ⬆ | names + match scores, annotated image |
-| `POST /api/analyze` | `file` ⬆ | objects + faces combined |
-| `POST /api/faces/register` | `name` + `files[]` | embeddings added |
-| `GET /api/faces` | — | identities + counts |
-| `DELETE /api/faces/{name}` | — | delete one identity |
-| `DELETE /api/faces` | — | clear all |
-
-All image endpoints also accept `image_base64` (form field, plain or `data:` URL) instead of `file`,
-and `?return_image=false` to skip the annotated image for speed.
-
-cURL example:
-
-```bash
-curl -X POST http://localhost:8000/api/analyze \
-  -F "file=@photo.jpg" | python -m json.tool
-```
-
-## 🎛️ Configuration (env vars)
-
-| Var | Default | Meaning |
-|---|---|---|
-| `YOLO_MODEL_NAME` | `yolov8n.pt` | `yolov8s.pt`/`yolov8m.pt`/`yolov8l.pt` = more accurate, slower |
-| `YOLO_CONF` / `YOLO_IOU` | `0.25` / `0.45` | detection thresholds |
-| `FACE_SCORE_THRESH` | `0.6` | YuNet min face confidence |
-| `FACE_MATCH_THRESH` | `0.363` | SFace cosine match threshold |
-| `MAX_FILE_MB` | `10` | upload limit |
-| `PORT` | `8000` | server port |
-
-See `.env.example`. For **maximum accuracy** on a good machine: `YOLO_MODEL_NAME=yolov8m.pt`.
-
-## 🐳 Deploy with Docker
+### Option A — Docker (recommended)
 
 ```bash
 docker compose up --build
-# → http://localhost:8000
+# → http://localhost:8000   (dashboard + API, weights auto-download)
 ```
 
-Face DB (`./data`), weights (`./models`) and `outputs/` are volume-mounted so registrations survive restarts.
-
-## ☁️ Deploy to the cloud (free)
-
-**Render** — push this repo to GitHub, then *New → Blueprint* and point at `render.yaml`
-(or *New → Web Service*, Docker runtime, health check `/api/health`).
-
-**Hugging Face Spaces** — new Space (Docker SDK) → push this repo; the Dockerfile serves on `$PORT`
-(Spaces sets `PORT=7860` automatically if you leave the default CMD override — set Space port to 8000
-or change CMD to use `$PORT`). Simplest: keep Docker SDK + port 7860 mapping:
-
-```dockerfile
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
-```
-
-**Any VPS / EC2** — `docker compose up -d --build` behind nginx/Caddy for HTTPS.
-
-## ✅ Verified end-to-end (real weights, CPU)
-
-Sample run on the bundled test photos (`data/samples/`, from OpenCV's sample set):
-
-| Test | Result |
-|---|---|
-| Face detect (Lena) | 1 face, conf **0.909**, ~109 ms CPU |
-| Face register → recognize (same photo) | **score 1.00, matched** |
-| Recognize perturbed copy (½ size, darker, blurred) | **score 0.909, matched** (threshold 0.363) — robust ✅ |
-| Non-face photo (baboon) | 0 faces — no false positive ✅ |
-| YOLOv8n objects (soccer photo) | **sports ball 0.95**, person 0.85 + crowd ✅ |
-| Unknown face (Messi, not in gallery) | detected (0.92) → **"Unknown"** (score 0.13 < 0.363) ✅ |
-| `pytest` | **9 passed** (mocked API + real unit tests) |
-
-## 🧪 Tests
+### Option B — Local dev
 
 ```bash
-pytest -q
+# backend
+pip install -r requirements.txt
+python scripts/download_models.py
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# frontend (separate terminal)
+cd frontend && npm install && npm run build   # output served by FastAPI at /
+# ...or `npm run dev` for hot-reload (proxies /api to :8000)
 ```
 
-API tests mock the heavy models (fast, no weights needed); detector tests cover cosine matching,
-face-DB persistence, and image codec round-trips for real.
+Open the dashboard at **http://localhost:8000** and the interactive API at **/docs**.
 
-## 📈 Accuracy notes (for your report)
+## 🧑 Face recognition workflow
 
-- **YOLOv8n** (default): COCO mAP50 ≈ 37 — great speed/accuracy balance on CPU (~50–150 ms).
-  Swap to **YOLOv8s/m** for +5–10 mAP at 2–4× cost. Raise `conf` to cut false positives.
-- **YuNet**: state-of-the-art lightweight face detector; `FACE_SCORE_THRESH=0.6` filters junk.
-- **SFace**: 128-D embeddings; cosine ≥ 0.363 ≈ same person (OpenCV benchmark threshold).
-  Accuracy climbs steeply with 3–5 diverse enrollment photos per identity.
-- Preprocessing keeps EXIF orientation correct and caps image side at 1280 px for stable latency.
+1. **Enroll** — Face Gallery page: 3–5 varied photos per person.
+2. **Calibrate** — *Run calibration*: genuine vs impostor distributions, FAR/FRR curves,
+   ROC, and a max-margin suggested threshold (needs 2+ identities × 2+ photos).
+3. **Recognize** — Image/Video Analysis with the calibrated threshold.
+
+## 🧪 Fine-tuning YOLO on your data
+
+Full guide: **[docs/TRAINING.md](docs/TRAINING.md)**. The short version:
+
+1. Prepare a dataset in YOLO format (`data.yaml` + `train|val/images|labels`).
+2. Fine-tune page → validate the dataset → set epochs/imgsz/batch → start the job.
+3. Watch live epoch logs; on completion `best.pt` is promoted to `models/` and appears
+   in the registry — activate it with one click, download it, or keep iterating.
+
+No dataset handy? *Generate demo dataset* builds a tiny synthetic 2-class set so you
+can prove the loop works in under two minutes (verified: **mAP@0.5 = 0.995**).
+
+```bash
+# CLI equivalent
+python -m training.train --data data/my_dataset/data.yaml --epochs 50 --name ppe_v1
+```
+
+## 📡 API reference
+
+| Method & path | Purpose |
+|---|---|
+| `GET /api/health`, `GET /api/stats` | Liveness + dashboard roll-up |
+| `POST /api/analyze` | Objects + faces in one call (logs to history) |
+| `POST /api/detect/objects`, `POST /api/detect/faces`, `POST /api/recognize/faces` | Single-task inference |
+| `GET/POST/DELETE /api/faces…`, `POST /api/faces/calibrate` | Gallery CRUD + calibration |
+| `POST /api/video/analyze`, `GET /api/jobs…` | Video jobs, progress, logs, MP4 download |
+| `GET/DELETE /api/history…` | Run log + thumbnails |
+| `GET /api/models`, `POST /api/models/switch` | Registry + activation |
+| `GET /api/training/status`, `POST /api/training/{demo-prepare,validate,start}` | Fine-tuning |
+
+Uploads accept multipart `file` (images ≤ 10 MB, video ≤ 100 MB) or `image_base64`.
+
+## ✅ Verified end-to-end (CPU, genuine weights)
+
+| Check | Result |
+|---|---|
+| Face detect → enroll → recognize (same photo) | score **1.00, matched** |
+| Perturbed copy (½ size, darker, blurred) | **0.909, matched** (thr 0.363) |
+| Unknown person | detected → **"Unknown"** (0.13 < thr) |
+| Non-face photo | 0 faces, no false positive |
+| YOLOv8n objects (soccer photo) | ball **0.95**, person 0.85 + crowd |
+| Video (795-frame traffic clip) | 80 frames, person/truck/car counts, annotated MP4 |
+| Fine-tune (synthetic, 50 epochs, CPU) | **mAP@0.5 0.995**, P 0.93, R 0.91; weights promoted + served |
+| Calibration (2 identities × 3 photos) | genuine μ 0.94 vs impostor μ 0.14 → suggested **0.534** |
+| `pytest` | **14 passed** |
+| React production build | ✅ served at `/` with client-route fallback |
+
+## 🗂️ Repository layout
+
+```
+├── app/                    # FastAPI platform
+│   ├── main.py             # routes: inference, video, history, calibration, registry, training + SPA
+│   ├── config.py           # env-overridable settings
+│   ├── detectors/          # YOLOv8 wrapper, YuNet+SFace engine
+│   ├── services/           # inference, face_db, jobs, history, video, calibration, registry
+│   ├── utils/              # image codec, annotation drawing
+│   └── static/dist/        # React build output (generated, git-ignored)
+├── frontend/               # React + TypeScript + Tailwind dashboard
+│   └── src/{pages,components,lib}/
+├── training/               # dataset utils, fine-tune runner (API + CLI)
+├── scripts/                # download_models, register_faces, demo
+├── tests/                  # pytest: API (mocked) + real service unit tests
+├── docs/TRAINING.md        # fine-tuning playbook
+├── Dockerfile              # multi-stage: node build → python runtime
+└── docker-compose.yml / render.yaml / Makefile
+```
+
+## 🎛️ Configuration
+
+| Var | Default | Meaning |
+|---|---|---|
+| `YOLO_MODEL_NAME` | `yolov8n.pt` | `s/m/l` = more accurate, slower |
+| `YOLO_CONF` / `YOLO_IOU` | `0.25` / `0.45` | detection thresholds |
+| `FACE_MATCH_THRESH` | `0.363` | SFace cosine default (calibrate to improve) |
+| `MAX_FILE_MB` / `MAX_VIDEO_MB` | `10` / `100` | upload caps |
+| `MAX_VIDEO_FRAMES` | `900` | analyzed-frame cap per video |
+| `PORT` | `8000` | server port |
+
+## 🧪 Tests & quality gates
+
+```bash
+pytest -q                       # backend (14 tests)
+cd frontend && npm run build    # frontend production build must pass
+```
 
 ## 🛠️ Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| `Missing YuNet/SFace model` | `python scripts/download_models.py` (needs internet once) |
-| `ultralytics is not installed` | `pip install -r requirements.txt` |
-| Slow first request | Normal — models lazy-load; subsequent calls are fast |
-| `torch` install is huge | CPU-only: `pip install torch --index-url https://download.pytorch.org/whl/cpu` first, then requirements |
-| No faces found at registration | Use clear front-facing photos, ≥100 px face, no heavy filters |
+| `Missing YuNet/SFace model` | `python scripts/download_models.py` (one-time, needs internet) |
+| `/` shows "build the web app" | `cd frontend && npm install && npm run build` |
+| `torch` install is huge | CPU-only first: `pip install torch --index-url https://download.pytorch.org/whl/cpu` |
+| Slow first request | Normal — lazy model load; subsequent calls are fast |
+| Training job fails on `polars` etc. | `pip install -r requirements.txt` (full, not `--no-deps`) |
 
-## 📚 Viva / report talking points
+## 📚 Report / viva talking points
 
-- Two-stage face pipeline: **detect → alignCrop → embed → cosine-NN** against gallery.
-- Why YOLOv8 single-shot > R-CNN two-stage for real-time; mAP vs latency tradeoff across n/s/m/l.
-- Threshold tuning as precision/recall tradeoff (show the sliders in the UI).
-- Deployment: ONNXRuntime-free OpenCV DNN + lazy singletons + Docker = reproducible anywhere.
+- Two-stage face pipeline and why cosine-NN on SFace embeddings suits small galleries.
+- YOLO single-shot vs two-stage detectors; mAP vs latency across n/s/m/l.
+- Threshold tuning as a precision/recall trade-off — show the FAR/FRR + ROC charts.
+- Transfer learning: fine-tuning from COCO weights converges in tens of epochs on small data.
+- Deployment: ONNX + lazy singletons + background jobs + Docker = reproducible anywhere.
 
 ## 📄 License
 
-MIT — models: YOLOv8 (AGPL-3.0, Ultralytics) for research; YuNet/SFace (MIT, OpenCV Zoo).
-Check upstream licenses before commercial use.
+MIT (see [LICENSE](LICENSE)). Model weights: YOLOv8 (AGPL-3.0, Ultralytics — research use),
+YuNet/SFace (MIT, OpenCV Zoo). Sample photos: OpenCV sample set, for testing only.

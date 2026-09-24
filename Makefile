@@ -1,4 +1,4 @@
-.PHONY: install models run docker test lint clean
+.PHONY: install models run docker test lint clean web-install web-build web-dev
 
 install:
 	pip install -r requirements.txt
@@ -9,6 +9,15 @@ models:
 run:
 	uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+web-install:
+	cd frontend && npm install
+
+web-build:
+	cd frontend && npm run build
+
+web-dev:
+	cd frontend && npm run dev
+
 docker:
 	docker compose up --build
 
@@ -16,7 +25,7 @@ test:
 	pytest -q
 
 lint:
-	python -m compileall app scripts
+	python -m compileall app scripts training
 
 clean:
 	rm -rf __pycache__ app/__pycache__ outputs/* .pytest_cache

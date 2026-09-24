@@ -28,6 +28,7 @@ class InferenceService:
         conf: float | None = None,
         iou: float | None = None,
         return_image: bool = True,
+        log_history: bool = True,
     ) -> dict:
         t0 = time.perf_counter()
         dets = self.objects.predict(image_bgr, conf=conf, iou=iou)
@@ -48,6 +49,9 @@ class InferenceService:
         }
         if return_image:
             out["annotated_image"] = to_base64_jpeg(draw_detections(image_bgr, dets))
+        if log_history:
+            out["run_id"] = self._log("objects", image_bgr, len(dets), 0, 0,
+                                      round(dt, 1), out["detections"][:10])
         return out
 
     # -- faces ---------------------------------------------------------
@@ -74,6 +78,7 @@ class InferenceService:
         image_bgr: np.ndarray,
         threshold: float | None = None,
         return_image: bool = True,
+        log_history: bool = False,
     ) -> dict:
         thr = config.FACE_MATCH_THRESH if threshold is None else float(threshold)
         t0 = time.perf_counter()
@@ -119,12 +124,13 @@ class InferenceService:
         iou: float | None = None,
         threshold: float | None = None,
         return_image: bool = True,
+        log_history: bool = True,
     ) -> dict:
         # Each branch degrades gracefully so a face-only (or object-only)
         # deployment still returns useful results instead of a 500.
         try:
             objects = self.detect_objects(image_bgr, conf=conf, iou=iou,
-                                          return_image=False)
+                                          return_image=False, log_history=False)
             obj_err = None
         except Exception as exc:  # noqa: BLE001
             objects = {"count": 0, "detections": [], "inference_ms": 0.0,
@@ -133,7 +139,7 @@ class InferenceService:
             objects["error"] = obj_err
         try:
             faces = self.recognize_faces(image_bgr, threshold=threshold,
-                                         return_image=False)
+                                         return_image=False, log_history=False)
             face_err = None
         except Exception as exc:  # noqa: BLE001
             faces = {"count": 0, "faces": [], "inference_ms": 0.0,
@@ -165,7 +171,31 @@ class InferenceService:
                 ],
             )
             out["annotated_image"] = to_base64_jpeg(tmp)
+        if log_history:
+            matched = sum(1 for f in faces["faces"] if f.get("matched"))
+            out["run_id"] = self._log(
+                "analyze", image_bgr, objects["count"], faces["count"],
+                matched, out["inference_ms"],
+                {"top_objects": objects["detections"][:5],
+                 "people": [f["name"] for f in faces["faces"]]},
+            )
         return out
+
+    # -- history -------------------------------------------------------
+    @staticmethod
+    def _log(kind: str, image_bgr, objects: int, faces: int, matched: int,
+             ms: float, summary) -> int | None:
+        try:
+            from app.services import history as history_store
+
+            return history_store.log_run(
+                kind, objects, faces, matched, ms,
+                summary=summary if isinstance(summary, dict)
+                else {"detections": summary},
+                image_bgr=image_bgr,
+            )
+        except Exception:  # noqa: BLE001
+            return None
 
     # -- registration --------------------------------------------------
     def register_face(self, name: str, images_bgr: list[np.ndarray]) -> dict:

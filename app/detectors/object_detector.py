@@ -63,6 +63,14 @@ class ObjectDetector:
             self._load_error = None
             return self._model
 
+    def switch_model(self, model_name: str) -> str:
+        """Point at a different checkpoint; weights lazy-load on next predict."""
+        with self._model_lock:
+            self.model_name = model_name
+            self._model = None
+            self._load_error = None
+        return self.model_name
+
     @property
     def class_names(self) -> dict[int, str]:
         if self.loaded:

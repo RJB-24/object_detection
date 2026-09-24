@@ -15,14 +15,23 @@ build/
 models/*.onnx
 models/*.pt
 models/*.pth
+models/runs/
 *.onnx
 *.pt
 !models/.gitkeep
 data/face_db.pkl
-data/known_faces/* 
+data/history.db
+data/active_model.txt
+data/demo_dataset/
+data/known_faces/*
 !data/known_faces/.gitkeep
 outputs/*
 !outputs/.gitkeep
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+app/static/dist/
 
 # Env
 .env
@@ -46,3 +55,6 @@ htmlcov/
 # Logs
 *.log
 logs/
+
+# Ultralytics default run dir (we use models/runs/)
+runs/
