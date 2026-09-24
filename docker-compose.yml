@@ -1,0 +1,14 @@
+services:
+  visionai:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      YOLO_MODEL_NAME: ${YOLO_MODEL_NAME:-yolov8n.pt}
+      YOLO_CONF: ${YOLO_CONF:-0.25}
+      FACE_MATCH_THRESH: ${FACE_MATCH_THRESH:-0.363}
+    volumes:
+      - ./data:/app/data        # persist registered faces
+      - ./outputs:/app/outputs
+      - ./models:/app/models    # cache downloaded weights
+    restart: unless-stopped

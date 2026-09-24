@@ -1,0 +1,7 @@
+__pycache__
+*.pyc
+.git
+models/
+data/face_db.pkl
+outputs/
+.venv/

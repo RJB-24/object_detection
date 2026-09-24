@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VisionAI — Object Detection + Face Recognition</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<div class="bg-glow"></div>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">◉</div>
+    <div>
+      <h1>VisionAI</h1>
+      <p>YOLOv8 object detection · YuNet + SFace face recognition</p>
+    </div>
+  </div>
+  <div class="health" id="health">
+    <span class="dot pulse"></span><span id="healthText">connecting…</span>
+    <a href="/docs" target="_blank" class="docs-link">API docs</a>
+  </div>
+</header>
+
+<main class="layout">
+  <section class="card left">
+    <div class="tabs">
+      <button class="tab active" data-tab="analyze">✦ Analyze</button>
+      <button class="tab" data-tab="objects">📦 Objects</button>
+      <button class="tab" data-tab="faces">😐 Faces</button>
+      <button class="tab" data-tab="gallery">🧑 Gallery</button>
+    </div>
+
+    <!-- Analyze / objects / faces share the uploader -->
+    <div id="panel-run">
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="image/*" hidden />
+        <div class="dz-inner">
+          <div class="dz-icon">🖼️</div>
+          <p><strong>Drop an image here</strong> or <span class="link">browse</span></p>
+          <small>JPG / PNG / WebP · max 10 MB · or use webcam below</small>
+        </div>
+        <img id="preview" alt="" />
+      </div>
+
+      <div class="row">
+        <button class="btn secondary" id="webcamBtn">📷 Webcam snapshot</button>
+        <button class="btn secondary" id="sampleBtn">🎲 Try sample photo</button>
+      </div>
+      <video id="video" playsinline muted></video>
+      <canvas id="canvas" style="display:none"></canvas>
+
+      <div class="sliders">
+        <label>Object confidence <span id="confVal">0.25</span>
+          <input type="range" id="conf" min="0.05" max="0.9" step="0.05" value="0.25" />
+        </label>
+        <label>Face match threshold <span id="thrVal">0.36</span>
+          <input type="range" id="thr" min="0.2" max="0.7" step="0.01" value="0.363" />
+        </label>
+      </div>
+
+      <button class="btn primary big" id="runBtn">▶ Run analysis</button>
+      <p class="hint">Analyze = objects + faces in one call. Switch tabs for single-task modes.</p>
+    </div>
+
+    <!-- Gallery -->
+    <div id="panel-gallery" hidden>
+      <h3>Known faces</h3>
+      <p class="muted">Register 2–5 clear, front-facing photos per person for best accuracy.</p>
+      <div class="row">
+        <input type="text" id="personName" placeholder="Person name, e.g. Ada" />
+      </div>
+      <div class="dropzone small" id="regDrop">
+        <input type="file" id="regFiles" accept="image/*" multiple hidden />
+        <p><strong>Drop 1–10 face photos</strong> or <span class="link">browse</span></p>
+        <small id="regCount">no files selected</small>
+      </div>
+      <button class="btn primary" id="registerBtn">＋ Register face</button>
+      <div id="regMsg" class="msg"></div>
+      <h3 style="margin-top:18px">Registered identities</h3>
+      <div id="identities" class="chips"><span class="muted">loading…</span></div>
+      <button class="btn danger ghost" id="clearBtn">Clear all identities</button>
+    </div>
+  </section>
+
+  <section class="card right">
+    <div class="result-head">
+      <h2 id="resultTitle">Result</h2>
+      <span class="pill" id="timePill" hidden></span>
+    </div>
+    <div class="result-img-wrap">
+      <img id="resultImg" alt="Annotated result will appear here" />
+      <div id="emptyResult" class="empty">Run an analysis to see the annotated image + detections here.</div>
+      <div id="spinner" class="spinner" hidden></div>
+    </div>
+    <div class="cols">
+      <div>
+        <h3>📦 Objects <span class="count" id="objCount"></span></h3>
+        <div id="objList" class="list"><span class="muted">—</span></div>
+      </div>
+      <div>
+        <h3>😐 Faces <span class="count" id="faceCount"></span></h3>
+        <div id="faceList" class="list"><span class="muted">—</span></div>
+      </div>
+    </div>
+    <details class="raw">
+      <summary>Raw JSON</summary>
+      <pre id="rawJson">{}</pre>
+    </details>
+  </section>
+</main>
+
+<footer>
+  <span>VisionAI · FastAPI + YOLOv8 + YuNet/SFace · runs on CPU, GPU if available</span>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
