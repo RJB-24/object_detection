@@ -1,12 +1,4 @@
-# VisionAI 2.0 — multi-stage: React dashboard + FastAPI platform
-# ---------------------------------------------------------------- web build
-FROM node:20-slim AS web
-WORKDIR /web
-COPY frontend/package.json ./
-RUN npm install --no-audit --no-fund
-COPY frontend/ ./
-RUN npm run build   # -> /app/app/static/dist (copied below)
-
+# VisionAI - object detection + face recognition
 # --------------------------------------------------------------- python
 FROM python:3.11-slim
 
@@ -25,7 +17,6 @@ COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
-COPY --from=web /app/app/static/dist ./app/static/dist
 
 # Pre-download weights at build time (needs network; safe to skip & lazy-load)
 RUN python scripts/download_models.py || echo "WARN: model pre-download failed, will lazy-load at runtime"

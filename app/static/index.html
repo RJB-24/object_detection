@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VisionAI</title>
+<style>
+  :root { --fg: #18181b; --muted: #71717a; --line: #e4e4e7; --bg: #fafafa; --card: #fff; --accent: #4f46e5; --good: #15803d; --bad: #b91c1c; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.5 -apple-system, "Segoe UI", Inter, Roboto, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 28px 18px 60px; }
+  header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  header .sp { flex: 1; }
+  .pill { font-size: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 3px 11px; color: var(--muted); white-space: nowrap; }
+  .pill b { color: var(--fg); font-weight: 600; }
+  .pill.ok b { color: var(--good); }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+  section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 14px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: 300px 1fr; gap: 18px; }
+  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+  label.f { display: block; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  label.f output { float: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+  input[type="text"], select { width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font: inherit; background: #fff; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  button { font: inherit; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid transparent; }
+  .btn { background: var(--accent); color: #fff; padding: 9px 16px; width: 100%; }
+  .btn:disabled { opacity: 0.5; cursor: wait; }
+  .btn2 { background: #fff; border-color: var(--line); padding: 7px 12px; font-weight: 500; font-size: 13px; }
+  .btn2:hover { border-color: #a1a1aa; }
+  .dz { border: 1.5px dashed #d4d4d8; border-radius: 6px; min-height: 150px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; color: var(--muted); font-size: 13px; padding: 12px; margin-bottom: 12px; background: #fcfcfc; }
+  .dz.over { border-color: var(--accent); background: #eef2ff; }
+  .dz img { max-width: 100%; max-height: 220px; border-radius: 4px; }
+  #result img { max-width: 100%; max-height: 420px; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  .meta { font-size: 12px; color: var(--muted); margin: 8px 0; font-variant-numeric: tabular-nums; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 560px) { .cols { grid-template-columns: 1fr; } }
+  .cols h3 { font-size: 12px; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 5px; font-size: 13px; }
+  .row span:last-child { font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+  .row .m { color: var(--good); } .row .u { color: var(--bad); }
+  .msg { font-size: 13px; min-height: 20px; margin-top: 8px; }
+  .msg.ok { color: var(--good); } .msg.err { color: var(--bad); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+  .chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 13px; background: #fcfcfc; }
+  .chip button { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px; }
+  .chip button:hover { color: var(--bad); }
+  .inline { display: flex; gap: 8px; } .inline input { flex: 1; } .inline button { width: auto; white-space: nowrap; }
+  .strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .thumb { flex: 0 0 auto; width: 132px; font-size: 11px; color: var(--muted); }
+  .thumb img { width: 132px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>VisionAI</h1>
+    <p>object detection + face recognition</p>
+    <span class="sp"></span>
+    <span class="pill" id="st">…</span>
+    <a class="pill" href="/docs" style="text-decoration:none">API docs</a>
+  </header>
+
+  <section>
+    <h2>Analyze image</h2>
+    <div class="grid">
+      <div>
+        <div class="dz" id="dz">Drop image or click to browse<input type="file" id="fi" accept="image/*" hidden></div>
+        <label class="f">Task
+          <select id="mode" style="margin-top:4px">
+            <option value="analyze">Objects + faces</option>
+            <option value="objects">Objects only</option>
+            <option value="faces">Faces only</option>
+          </select>
+        </label>
+        <label class="f">Object confidence <output id="confV">0.25</output>
+          <input type="range" id="conf" min="0.05" max="0.9" step="0.05" value="0.25">
+        </label>
+        <label class="f">Face match threshold <output id="thrV">0.363</output>
+          <input type="range" id="thr" min="0.2" max="0.7" step="0.005" value="0.363">
+        </label>
+        <button class="btn" id="run">Analyze</button>
+        <div class="msg" id="runMsg"></div>
+      </div>
+      <div id="result"><p style="color:var(--muted);font-size:13px;margin:0">Result appears here.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Known faces</h2>
+    <div class="inline">
+      <input type="text" id="nm" placeholder="Name">
+      <input type="file" id="ff" accept="image/*" multiple hidden>
+      <button class="btn2" id="pick">Photos…</button>
+      <button class="btn2" id="enroll" style="border-color:var(--accent);color:var(--accent);font-weight:600">Enroll</button>
+    </div>
+    <div class="msg" id="faceMsg"></div>
+    <div class="chips" id="chips"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn2" id="cal">Calibrate threshold</button>
+      <span class="msg" id="calMsg" style="margin:0"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Recent runs</h2>
+    <div class="strip" id="strip"><span style="color:var(--muted);font-size:13px">None yet.</span></div>
+  </section>
+
+  <footer>Video, training and history APIs stay available — see <a href="/docs">/docs</a>.</footer>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let file = null, regFiles = [];
+
+async function j(res) {
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.detail || ("HTTP " + res.status));
+  return d;
+}
+
+// status
+fetch("/api/health").then(j).then((h) => {
+  const m = (h.models.yolo.model || "").split("/").pop();
+  $("st").className = "pill ok";
+  $("st").innerHTML = "<b>● online</b> · " + m + " · " + h.face_identities.length + " faces";
+}).catch(() => { $("st").textContent = "offline"; });
+
+// dropzone
+const dz = $("dz"), fi = $("fi");
+dz.onclick = () => fi.click();
+fi.onchange = () => setFile(fi.files[0]);
+["dragover", "dragenter"].forEach((e) => dz.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.add("over"); }));
+["dragleave", "drop"].forEach((e) => dz.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.remove("over"); }));
+dz.addEventListener("drop", (ev) => setFile(ev.dataTransfer.files[0]));
+function setFile(f) {
+  if (!f) return;
+  file = f;
+  dz.innerHTML = "";
+  const img = document.createElement("img");
+  img.src = URL.createObjectURL(f);
+  dz.appendChild(img);
+}
+
+// sliders
+$("conf").oninput = (e) => ($("confV").textContent = (+e.target.value).toFixed(2));
+$("thr").oninput = (e) => ($("thrV").textContent = (+e.target.value).toFixed(3));
+
+// analyze
+$("run").onclick = async () => {
+  const msg = $("runMsg");
+  msg.className = "msg";
+  if (!file) { msg.textContent = "Choose an image first."; msg.classList.add("err"); return; }
+  const mode = $("mode").value;
+  const ep = mode === "objects" ? "/api/detect/objects" : mode === "faces" ? "/api/recognize/faces" : "/api/analyze";
+  const q = new URLSearchParams({ return_image: "true", conf: $("conf").value, threshold: $("thr").value });
+  const fd = new FormData();
+  fd.append("file", file);
+  $("run").disabled = true;
+  msg.textContent = "Analyzing…";
+  try {
+    const d = await j(await fetch(ep + "?" + q, { method: "POST", body: fd }));
+    render(d, mode);
+    msg.textContent = "";
+    loadRecent();
+  } catch (e) { msg.textContent = e.message; msg.classList.add("err"); }
+  $("run").disabled = false;
+};
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m])); }
+
+function render(d, mode) {
+  let objs = [], faces = [], ms = d.inference_ms, img = d.annotated_image;
+  if (d.objects) { objs = d.objects.detections || []; faces = d.faces.faces || []; }
+  else if (d.detections) { objs = d.detections; }
+  else { faces = d.faces || []; }
+  let h = "";
+  if (img) h += `<img src="${img}" alt="result">`;
+  h += `<div class="meta">${ms} ms · ${objs.length} objects · ${faces.length} faces</div><div class="cols"><div><h3>Objects</h3>`;
+  h += objs.length
+    ? objs.map((o) => `<div class="row"><span>${esc(o.class_name)}</span><span>${(o.confidence * 100).toFixed(1)}%</span></div>`).join("")
+    : `<div class="meta">None.</div>`;
+  h += `</div><div><h3>Faces</h3>`;
+  h += faces.length
+    ? faces.map((f) => {
+        const nm = f.name || "face";
+        const pct = f.score != null ? (f.score * 100).toFixed(1) + "%" : (f.confidence * 100).toFixed(1) + "%";
+        const cls = f.matched ? "m" : f.score != null ? "u" : "";
+        return `<div class="row"><span class="${cls}">${esc(nm)}</span><span>${pct}</span></div>`;
+      }).join("")
+    : `<div class="meta">None.</div>`;
+  h += `</div></div>`;
+  $("result").innerHTML = h;
+}
+
+// faces
+$("pick").onclick = () => $("ff").click();
+$("ff").onchange = (e) => {
+  regFiles = [...e.target.files].slice(0, 10);
+  $("faceMsg").className = "msg";
+  $("faceMsg").textContent = regFiles.length ? regFiles.length + " photo(s) selected." : "";
+};
+$("enroll").onclick = async () => {
+  const msg = $("faceMsg");
+  msg.className = "msg";
+  const name = $("nm").value.trim();
+  if (!name || !regFiles.length) { msg.textContent = "Enter a name and pick photos."; msg.classList.add("err"); return; }
+  const fd = new FormData();
+  fd.append("name", name);
+  regFiles.forEach((f) => fd.append("files", f));
+  try {
+    const d = await j(await fetch("/api/faces/register", { method: "POST", body: fd }));
+    msg.textContent = `Enrolled ${d.embeddings_added}/${d.images_received} photo(s) for ${d.name}.`;
+    msg.classList.add("ok");
+    $("nm").value = ""; $("ff").value = ""; regFiles = [];
+    loadFaces();
+  } catch (e) { msg.textContent = e.message; msg.classList.add("err"); }
+};
+
+async function loadFaces() {
+  try {
+    const d = await j(await fetch("/api/faces"));
+    $("chips").innerHTML = d.identities.length
+      ? d.identities.map((n) => `<span class="chip">${esc(n)} ×${d.counts[n] || 0}<button data-n="${esc(n)}" title="Delete">×</button></span>`).join("")
+      : `<span style="color:var(--muted);font-size:13px">No faces enrolled.</span>`;
+    document.querySelectorAll("#chips button").forEach((b) => (b.onclick = async () => {
+      if (!confirm(`Delete "${b.dataset.n}"?`)) return;
+      await fetch("/api/faces/" + encodeURIComponent(b.dataset.n), { method: "DELETE" });
+      loadFaces();
+    }));
+  } catch { /* ignore */ }
+}
+
+$("cal").onclick = async () => {
+  const msg = $("calMsg");
+  msg.className = "msg";
+  msg.textContent = "Calibrating…";
+  try {
+    const c = await j(await fetch("/api/faces/calibrate", { method: "POST" }));
+    if (c.sufficient_data) {
+      $("thr").value = c.suggested_threshold;
+      $("thrV").textContent = (+c.suggested_threshold).toFixed(3);
+      msg.textContent = `Suggested ${c.suggested_threshold} — applied to the slider.`;
+    } else {
+      msg.textContent = "Need 2+ people × 2+ photos. Keeping current threshold.";
+    }
+    msg.classList.add("ok");
+  } catch (e) { msg.textContent = e.message; msg.classList.add("err"); }
+};
+
+// recent
+async function loadRecent() {
+  try {
+    const d = await j(await fetch("/api/history?limit=6&offset=0"));
+    if (!d.runs.length) return;
+    $("strip").innerHTML = d.runs.map((r) =>
+      `<div class="thumb">${r.thumb ? `<img src="/api/history/${r.id}/thumb" loading="lazy">` : ""}#${r.id} ${esc(r.kind)} · ${r.objects}o/${r.faces}f · ${Math.round(r.ms)}ms</div>`
+    ).join("");
+  } catch { /* ignore */ }
+}
+
+loadFaces();
+loadRecent();
+</script>
+</body>
+</html>

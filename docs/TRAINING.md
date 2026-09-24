@@ -1,7 +1,7 @@
 # Fine-tuning playbook
 
 This project supports full transfer-learning fine-tuning of the object detector,
-from the **Fine-tune page** in the dashboard or from the terminal. Trained weights
+from the terminal or through the training API. Trained weights
 are promoted into `models/`, appear in the registry, and can be activated with one
 click (or API call) — no restart required.
 
@@ -29,15 +29,16 @@ my_dataset/
 
 ## 2. Validate
 
-- UI: paste the `data.yaml` path → **Validate custom** (checks folders, counts, missing labels).
+- API: `POST /api/training/validate {"data_yaml": "..."}` (checks folders,
+  counts, missing labels). Demo set: `POST /api/training/demo-prepare`.
 - CLI: `python -c "from training.dataset import validate_dataset; print(validate_dataset('...'))"`.
 
 ## 3. Train
 
-- UI: choose run name, base weights (`yolov8n.pt` … or another custom `.pt` for
-  continued training), epochs / imgsz / batch → **Start fine-tuning job**.
-  Epoch logs and metrics stream live; final validation (mAP@0.5, mAP@0.5:0.95,
-  precision, recall) is reported on completion.
+- API: `POST /api/training/start` with run name, base weights (`yolov8s.pt`
+  … or another custom `.pt` for continued training), epochs / imgsz / batch.
+  Poll `GET /api/jobs/{id}` for live epoch logs; final validation (mAP@0.5,
+  mAP@0.5:0.95, precision, recall) is reported on completion.
 - CLI: `python -m training.train --data .../data.yaml --epochs 50 --name ppe_v1 --batch 16`
 
 Recommended starting points (single GPU or strong CPU):
@@ -58,8 +59,8 @@ Recommended starting points (single GPU or strong CPU):
 
 ## 5. Deploy the tuned weights
 
-- Already promoted: `models/<name>.pt` → registry → **Activate**.
-- API: `POST /api/models/switch {"name": "<name>.pt"}`.
+- Already promoted: `models/<name>.pt` → activate with
+  `POST /api/models/switch {"name": "<name>.pt"}` (no restart needed).
 - Download from the job card (`GET /api/jobs/{id}/download`) to ship elsewhere.
 - Roll back anytime by activating a stock checkpoint.
 
@@ -77,5 +78,6 @@ Recommended starting points (single GPU or strong CPU):
 - **Class names wrong after switching?** Custom weights carry their own label map;
   the API returns `class_name` from the active model automatically.
 - **Can I fine-tune the face recognizer?** SFace is a fixed embedding model —
-  instead, "tune" recognition via gallery quality + the **calibration** tool
-  (Face Gallery page), which sets the optimal threshold from your data.
+  instead, "tune" recognition via gallery quality + the calibration
+  endpoint (`POST /api/faces/calibrate`, or the button in the web UI),
+  which sets the optimal threshold from your data.

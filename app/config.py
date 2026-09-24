@@ -30,7 +30,7 @@ def _env_int(key: str, default: int) -> int:
 
 
 # --- Object detection (YOLOv8) ---
-YOLO_MODEL_NAME: str = _env("YOLO_MODEL_NAME", "yolov8n.pt")
+YOLO_MODEL_NAME: str = _env("YOLO_MODEL_NAME", "yolov8s.pt")
 # Swap to yolov8s.pt / yolov8m.pt / yolov8l.pt for higher accuracy (slower).
 YOLO_CONF: float = _env_float("YOLO_CONF", 0.25)
 YOLO_IOU: float = _env_float("YOLO_IOU", 0.45)
@@ -42,7 +42,7 @@ FACE_DETECTION_MODEL: Path = ROOT / _env(
 FACE_RECOGNITION_MODEL: Path = ROOT / _env(
     "FACE_RECOGNITION_MODEL", "models/face_recognition_sface_2021dec.onnx"
 )
-FACE_SCORE_THRESH: float = _env_float("FACE_SCORE_THRESH", 0.6)
+FACE_SCORE_THRESH: float = _env_float("FACE_SCORE_THRESH", 0.5)
 FACE_NMS_THRESH: float = _env_float("FACE_NMS_THRESH", 0.3)
 FACE_TOP_K: int = _env_int("FACE_TOP_K", 5000)
 # Cosine-similarity match threshold for SFace (OpenCV default: 0.363).

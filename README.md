@@ -30,18 +30,15 @@ Local development:
 pip install -r requirements-dev.txt
 python scripts/download_models.py
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-
-cd frontend && npm install && npm run build   # served by FastAPI at /
-# or `npm run dev` for hot-reload (:5173, proxies /api to :8000)
 ```
 
 Interactive API docs: `/docs`.
 
 ## Web UI
 
-Dashboard (stats, trends, recent runs), Image Analysis (combined/objects/faces),
-Video Analysis (jobs, charts, MP4 download), Face Gallery (enrollment,
-calibration), Fine-tune (datasets, training, model registry), Run History.
+A single dependency-free page at `/`: analyze images (combined/objects/faces),
+enroll and manage known faces, one-click threshold calibration, and recent
+runs. Video, training, and registry operations stay on the API (see `/docs`).
 
 ## API
 
@@ -61,7 +58,7 @@ Uploads are multipart `file` (images ≤ 10 MB, video ≤ 100 MB).
 ## Fine-tuning
 
 See [docs/TRAINING.md](docs/TRAINING.md) for the full playbook. Summary:
-prepare a YOLO-format dataset, validate it from the Fine-tune page, start a
+prepare a YOLO-format dataset, validate it via the API, start a
 training job, and activate the promoted weights from the registry — or run
 `python -m training.train --data .../data.yaml --epochs 50 --name v1`.
 
@@ -69,7 +66,7 @@ training job, and activate the promoted weights from the registry — or run
 
 | Variable | Default | Description |
 |---|---|---|
-| `YOLO_MODEL_NAME` | `yolov8n.pt` | Base checkpoint (`s/m/l` trade speed for accuracy) |
+| `YOLO_MODEL_NAME` | `yolov8s.pt` | Base checkpoint (`n` is faster, `m/l` more accurate) |
 | `YOLO_CONF` / `YOLO_IOU` | `0.25` / `0.45` | Detection thresholds |
 | `FACE_MATCH_THRESH` | `0.363` | SFace cosine default (calibrate per gallery) |
 | `MAX_FILE_MB` / `MAX_VIDEO_MB` | `10` / `100` | Upload caps |
@@ -80,7 +77,7 @@ training job, and activate the promoted weights from the registry — or run
 
 ```
 app/            FastAPI service (api/ routers, detectors/, services/, utils/)
-frontend/       React + TypeScript + Tailwind dashboard (build -> app/static/dist)
+app/static/     Single-page UI (no build step)
 training/       dataset utils + fine-tuning runner (API and CLI)
 scripts/        model download, local CLI demo
 tests/          pytest suite (mocked API + service unit tests)
@@ -91,27 +88,26 @@ docs/           fine-tuning playbook
 
 ```bash
 pytest -q                     # backend tests
-cd frontend && npm run build  # frontend production build
 docker compose up --build     # full-stack check
 ```
 
-CI runs the backend suite and the frontend build on every push.
+CI runs the backend suite on every push.
 
 ## Validation
 
-Spot-checked on CPU with release weights: face enroll-then-recognize scores
-1.00 (same photo) and 0.91 (degraded copy); unknown faces correctly rejected;
-YOLOv8n finds the expected objects in reference photos; a 795-frame video job
-produces counts plus an annotated MP4; a 50-epoch fine-tune on the bundled
-synthetic set reaches mAP@0.5 0.995 with served weights; gallery calibration
-separates genuine (mean 0.94) from impostor (mean 0.14) pairs.
+Spot-checked on CPU with release weights: YOLOv8s detects the expected
+objects with fewer false positives than the nano model (~170 ms/image on CPU);
+face enroll-then-recognize scores 1.00 (same photo) and 0.91 (degraded copy)
+with unknown faces correctly rejected; a 795-frame video job produces counts
+plus an annotated MP4; a 50-epoch fine-tune on the bundled synthetic set
+reaches mAP@0.5 0.995; gallery calibration separates genuine (mean 0.94)
+from impostor (mean 0.14) pairs.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | Missing YuNet/SFace weights | `python scripts/download_models.py` (one-time download) |
-| `/` shows "build the web app" | `cd frontend && npm install && npm run build` |
 | Slow first request | Expected — models lazy-load, then stay resident |
 | Huge `torch` install | Install the CPU wheel first (see pytorch.org), then requirements |
 

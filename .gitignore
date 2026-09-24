@@ -28,9 +28,6 @@ data/known_faces/*
 outputs/*
 !outputs/.gitkeep
 
-# Frontend
-frontend/node_modules/
-app/static/dist/
 
 # Env
 .env
