@@ -3,7 +3,7 @@
 Usage:
     python scripts/demo.py photo.jpg
     python scripts/demo.py photo.jpg --faces-only --save out.jpg
-    python scripts/demo.py photo.jpg --yolo yolov8s.pt --conf 0.4
+    python scripts/demo.py photo.jpg --conf 0.4
 """
 from __future__ import annotations
 

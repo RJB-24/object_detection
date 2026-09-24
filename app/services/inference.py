@@ -10,8 +10,9 @@ from app import config
 from app.detectors.face import get_face_engine
 from app.detectors.object_detector import get_object_detector
 from app.services.face_db import FaceDatabase
+from app.services import history as history_store
 from app.utils.drawing import draw_detections, draw_faces
-from app.utils.image import to_base64_jpeg
+from app.utils.image import encode_jpeg, to_base64_jpeg
 
 
 class InferenceService:
@@ -19,7 +20,6 @@ class InferenceService:
         self.objects = get_object_detector()
         self.faces = get_face_engine()
         self.db = FaceDatabase()
-        self._lock = threading.Lock()
 
     # -- objects -------------------------------------------------------
     def detect_objects(
@@ -186,8 +186,6 @@ class InferenceService:
     def _log(kind: str, image_bgr, objects: int, faces: int, matched: int,
              ms: float, summary) -> int | None:
         try:
-            from app.services import history as history_store
-
             return history_store.log_run(
                 kind, objects, faces, matched, ms,
                 summary=summary if isinstance(summary, dict)
@@ -225,8 +223,6 @@ class InferenceService:
         try:
             ref_dir = config.KNOWN_FACES_DIR / name
             ref_dir.mkdir(parents=True, exist_ok=True)
-            from app.utils.image import encode_jpeg
-
             for idx, img in enumerate(images_bgr):
                 with open(ref_dir / f"{idx}.jpg", "wb") as fh:
                     fh.write(encode_jpeg(img))

@@ -8,7 +8,8 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
-import { api, fmtTime, shortModel } from "../lib/api";
+import { api } from "../lib/api";
+import { fmtTime, shortModel } from "../lib/format";
 import type { HealthResponse, HistoryRun, PlatformStats } from "../lib/types";
 import { PageHeader, StatCard, Spinner, KindBadge } from "../components/bits";
 import { useToast } from "../components/Toast";

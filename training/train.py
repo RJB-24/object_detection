@@ -24,8 +24,6 @@ def run_training(
     base_model: str = "yolov8n.pt",
     name: str = "custom",
     batch: int = 16,
-    device: str = "",
-    lr0: float = 0.01,
 ) -> dict:
     from ultralytics import YOLO
 
@@ -35,8 +33,7 @@ def run_training(
     info = validate_dataset(data_yaml)
     job.log(f"Dataset OK: {info['splits']['train']['images']} train / "
             f"{info['splits']['val']['images']} val, nc={info['nc']}")
-    job.log(f"Base model={base_model} epochs={epochs} imgsz={imgsz} "
-            f"batch={batch} device={device or 'auto'}")
+    job.log(f"Base model={base_model} epochs={epochs} imgsz={imgsz} batch={batch}")
 
     model = YOLO(base_model)
 
@@ -62,13 +59,11 @@ def run_training(
     except Exception:  # noqa: BLE001
         job.log("Note: epoch callbacks unavailable in this ultralytics version")
 
-    results = model.train(
+    model.train(
         data=str(data_yaml),
         epochs=int(epochs),
         imgsz=int(imgsz),
         batch=int(batch),
-        device=device or None,
-        lr0=float(lr0),
         project=str(ROOT / "models" / "runs"),
         name=name,
         exist_ok=True,

@@ -52,6 +52,9 @@ FACE_MATCH_THRESH: float = _env_float("FACE_MATCH_THRESH", 0.363)
 FACE_DB_PATH: Path = ROOT / _env("FACE_DB_PATH", "data/face_db.pkl")
 KNOWN_FACES_DIR: Path = ROOT / _env("KNOWN_FACES_DIR", "data/known_faces")
 
+# --- Model registry ---
+ACTIVE_MODEL_FILE: Path = ROOT / "data" / "active_model.txt"
+
 # --- API limits ---
 MAX_FILE_MB: int = _env_int("MAX_FILE_MB", 10)
 MAX_VIDEO_MB: int = _env_int("MAX_VIDEO_MB", 100)
@@ -69,8 +72,6 @@ SFACE_URL: str = _env(
 )
 
 # --- Server ---
-HOST: str = _env("HOST", "0.0.0.0")
-PORT: int = _env_int("PORT", 8000)
 CORS_ORIGINS: str = _env("CORS_ORIGINS", "*")
 
 COCO_LABELS_80 = [

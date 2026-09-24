@@ -42,7 +42,6 @@ def init_db() -> None:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ts REAL NOT NULL,
                 kind TEXT NOT NULL,          -- objects | faces | analyze
-                source TEXT NOT NULL DEFAULT 'upload',
                 objects INTEGER NOT NULL DEFAULT 0,
                 faces INTEGER NOT NULL DEFAULT 0,
                 matched INTEGER NOT NULL DEFAULT 0,
@@ -86,15 +85,14 @@ def log_run(
     ms: float,
     summary: dict | None = None,
     image_bgr: np.ndarray | None = None,
-    source: str = "upload",
 ) -> int:
     init_db()
     with _lock:
         con = _connect()
         cur = con.execute(
-            "INSERT INTO runs (ts, kind, source, objects, faces, matched, ms, summary)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (time.time(), kind, source, int(objects), int(faces),
+            "INSERT INTO runs (ts, kind, objects, faces, matched, ms, summary)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (time.time(), kind, int(objects), int(faces),
              int(matched), float(ms), json.dumps(summary or {})),
         )
         run_id = int(cur.lastrowid)

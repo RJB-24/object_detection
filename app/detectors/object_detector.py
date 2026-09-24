@@ -1,6 +1,7 @@
 """YOLOv8 generic object detector (80 COCO classes)."""
 from __future__ import annotations
 
+import os
 import threading
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,7 @@ class ObjectDetector:
     _lock = threading.Lock()
 
     def __init__(self, model_name: str | None = None) -> None:
-        self.model_name = model_name or config.YOLO_MODEL_NAME
+        self.model_name = model_name or _initial_model()
         self._model: Any = None
         self._model_lock = threading.Lock()
         self._load_error: str | None = None
@@ -136,6 +137,21 @@ class ObjectDetector:
             return "cpu"
         except Exception:  # noqa: BLE001
             return "cpu"
+
+
+def _initial_model() -> str:
+    """Startup model: an explicitly set YOLO_MODEL_NAME wins (deployment
+    intent), then the last registry selection (if its file still exists),
+    else the default."""
+    if os.getenv("YOLO_MODEL_NAME"):
+        return config.YOLO_MODEL_NAME
+    try:
+        persisted = config.ACTIVE_MODEL_FILE.read_text().strip()
+    except OSError:
+        persisted = ""
+    if persisted and Path(persisted).exists():
+        return persisted
+    return config.YOLO_MODEL_NAME
 
 
 def get_object_detector() -> ObjectDetector:

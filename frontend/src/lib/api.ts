@@ -93,7 +93,7 @@ export const api = {
   validateDataset: (dataYaml: string) =>
     fetch("/api/training/validate", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: dataYaml }),
+      body: JSON.stringify({ data_yaml: dataYaml }),
     }).then((r) => handle<any>(r)),
   startTraining: (body: { data_yaml: string; epochs: number; imgsz: number; base_model: string; name: string; batch: number }) =>
     fetch("/api/training/start", {
@@ -102,9 +102,3 @@ export const api = {
     }).then((r) => handle<{ job_id: string; status: string; poll: string }>(r)),
 };
 
-export const fmtTime = (ts: number) => {
-  const d = new Date(ts * 1000);
-  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-};
-
-export const shortModel = (m: string) => m.split("/").pop() || m;

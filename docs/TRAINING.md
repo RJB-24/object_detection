@@ -1,4 +1,4 @@
-# Fine-tuning playbook — train YOLOv8 on your own data 🧪
+# Fine-tuning playbook
 
 This project supports full transfer-learning fine-tuning of the object detector,
 from the **Fine-tune page** in the dashboard or from the terminal. Trained weights

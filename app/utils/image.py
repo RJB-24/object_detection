@@ -34,11 +34,6 @@ def decode_image(data: bytes) -> np.ndarray:
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
 
-def decode_base64(data_b64: str) -> np.ndarray:
-    raw = data_b64.split(",", 1)[-1]  # allow data: URLs
-    return decode_image(base64.b64decode(raw))
-
-
 def encode_jpeg(bgr: np.ndarray, quality: int = 90) -> bytes:
     ok, buf = cv2.imencode(".jpg", bgr, [cv2.IMWRITE_JPEG_QUALITY, quality])
     if not ok:
@@ -50,7 +45,3 @@ def to_base64_jpeg(bgr: np.ndarray, quality: int = 88) -> str:
     return "data:image/jpeg;base64," + base64.b64encode(
         encode_jpeg(bgr, quality)
     ).decode("ascii")
-
-
-def to_rgb(bgr: np.ndarray) -> np.ndarray:
-    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)

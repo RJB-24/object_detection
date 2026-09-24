@@ -19,7 +19,7 @@ from app import config
 from app.detectors.face import FaceEngine
 from app.services.face_db import FaceDatabase
 
-DEFAULT_THRESHOLD = 0.363
+DEFAULT_THRESHOLD = config.FACE_MATCH_THRESH
 
 
 def _pair_scores(embs_a: list[np.ndarray], embs_b: list[np.ndarray]) -> list[float]:
@@ -130,6 +130,6 @@ def calibrate(db: FaceDatabase | None = None) -> dict:
             "Calibration based on your gallery."
             if enough else
             "Need at least 2 identities with 2+ photos each for calibration. "
-            "Keeping default 0.363. Register more photos, then re-run."
+            f"Keeping default {DEFAULT_THRESHOLD}. Register more photos, then re-run."
         ),
     }

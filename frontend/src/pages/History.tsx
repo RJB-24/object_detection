@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Trash2, Ban } from "lucide-react";
 import clsx from "clsx";
-import { api, fmtTime } from "../lib/api";
+import { api } from "../lib/api";
+import { fmtTime } from "../lib/format";
 import type { HistoryRun } from "../lib/types";
 import { PageHeader, Spinner, KindBadge, EmptyState } from "../components/bits";
 import { useToast } from "../components/Toast";

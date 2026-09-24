@@ -2,12 +2,11 @@ import { useCallback, useRef, useState } from "react";
 import { ImagePlus, Film, X } from "lucide-react";
 import clsx from "clsx";
 
-export function Dropzone({ file, onFile, accept, kind, compact }: {
+export function Dropzone({ file, onFile, accept, kind }: {
   file: File | null;
   onFile: (f: File | null) => void;
   accept: string;
   kind: "image" | "video";
-  compact?: boolean;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -28,7 +27,7 @@ export function Dropzone({ file, onFile, accept, kind, compact }: {
       className={clsx(
         "relative rounded-xl border-2 border-dashed cursor-pointer overflow-hidden transition",
         drag ? "border-emerald-400 bg-emerald-400/5" : "border-cyan-400/30 bg-cyan-400/[0.03] hover:border-cyan-400/60",
-        compact ? "min-h-[120px]" : "min-h-[190px]",
+        "min-h-[190px]",
         "grid place-items-center text-center p-4"
       )}
     >

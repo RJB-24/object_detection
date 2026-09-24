@@ -1,7 +1,7 @@
-.PHONY: install models run docker test lint clean web-install web-build web-dev
+.PHONY: install models run docker test compile clean web-install web-build web-dev
 
 install:
-	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 
 models:
 	python scripts/download_models.py
@@ -24,7 +24,7 @@ docker:
 test:
 	pytest -q
 
-lint:
+compile:
 	python -m compileall app scripts training
 
 clean:

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Activity, Cpu, UserCheck } from "lucide-react";
-import { api, shortModel } from "../lib/api";
+import { api } from "../lib/api";
+import { shortModel } from "../lib/format";
 import type { HealthResponse } from "../lib/types";
 
 export function Topbar() {

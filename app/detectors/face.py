@@ -157,15 +157,6 @@ class FaceEngine:
         denom = (np.linalg.norm(a) * np.linalg.norm(b)) + 1e-12
         return float(np.dot(a, b) / denom)
 
-    def match(
-        self,
-        image_bgr: np.ndarray,
-        face_raw: np.ndarray,
-        candidate: np.ndarray,
-    ) -> float:
-        emb = self.embedding(image_bgr, face_raw)
-        return self.cosine_similarity(emb, np.asarray(candidate).flatten())
-
 
 # Shared singleton used by the API
 _engine: FaceEngine | None = None

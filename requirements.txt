@@ -1,4 +1,4 @@
-# Core API
+# Runtime dependencies
 fastapi>=0.109,<1
 uvicorn[standard]>=0.25,<1
 python-multipart>=0.0.9
@@ -12,7 +12,3 @@ Pillow>=10.0,<12
 
 # Object detection (YOLOv8). Pulls torch automatically.
 ultralytics>=8.1,<9
-
-# Tests
-pytest>=7.4
-httpx>=0.25

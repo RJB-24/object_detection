@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from app import config
+from app.detectors.face import FaceEngine
 
 
 class FaceDatabase:
@@ -86,8 +87,6 @@ class FaceDatabase:
         self, embedding: np.ndarray, threshold: float | None = None
     ) -> tuple[str | None, float, bool]:
         """Return (name, best_score, matched). Cosine similarity, higher = better."""
-        from app.detectors.face import FaceEngine
-
         thr = config.FACE_MATCH_THRESH if threshold is None else float(threshold)
         emb = np.asarray(embedding, dtype=np.float32).flatten()
         best_name: str | None = None

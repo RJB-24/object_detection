@@ -12,9 +12,11 @@ import cv2
 import numpy as np
 
 from app import config
+from app.detectors.face import FaceEngineError
 from app.services.inference import get_inference_service
 from app.services.jobs import Job
 from app.utils.drawing import draw_detections, draw_faces
+from app.utils.image import to_base64_jpeg
 
 VIDEO_OUT_DIR = config.ROOT / "outputs" / "videos"
 
@@ -65,8 +67,6 @@ def process_video(
             cap.release()
             raise RuntimeError(f"Object model unavailable: {exc}")
     if do_faces:
-        from app.detectors.face import FaceEngineError
-
         try:
             svc.faces.load()
         except FaceEngineError as exc:
@@ -80,7 +80,6 @@ def process_video(
     thumb: np.ndarray | None = None
     processed = 0
     read = 0
-    annotated_frames = 0
 
     while True:
         ok, frame = cap.read()
@@ -122,7 +121,6 @@ def process_video(
             frame = draw_faces(frame, draw_list)
 
         writer.write(frame)
-        annotated_frames += 1
         if thumb is None and (n_obj or n_face):
             thumb = frame.copy()
         processed += 1
@@ -136,13 +134,9 @@ def process_video(
     cap.release()
     writer.release()
 
-    thumb_b64: str | None = None
-    if thumb is not None:
-        from app.utils.image import to_base64_jpeg
+    thumb_b64 = to_base64_jpeg(thumb) if thumb is not None else None
 
-        thumb_b64 = to_base64_jpeg(thumb)
-
-    job.log(f"Done: {processed} frames analyzed, {annotated_frames} written")
+    job.log(f"Done: {processed} frames analyzed")
     return {
         "mode": mode,
         "src_fps": round(fps, 2),

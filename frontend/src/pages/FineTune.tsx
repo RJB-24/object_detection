@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Play, Cpu, Database, FolderCheck, RefreshCw, Download, Check } from "lucide-react";
-import { api, shortModel } from "../lib/api";
+import { api } from "../lib/api";
+import { shortModel } from "../lib/format";
 import type { Job, ModelItem, TrainingStatus } from "../lib/types";
 import { PageHeader, Spinner } from "../components/bits";
 import { JobLogs, JobProgress, useJobPoll } from "../components/JobMonitor";
