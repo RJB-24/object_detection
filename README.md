@@ -38,8 +38,10 @@ Interactive API docs: `/docs`.
 
 A single dependency-free page at `/`: analyze images (combined/objects/faces),
 enroll and manage known faces, one-click threshold calibration, and recent
-runs. Results include a spoken summary (browser speech, toggleable).
-Video, training, and registry operations stay on the API (see `/docs`).
+runs, and a video section (upload, progress bar, spoken summary, download).
+Results include a spoken summary (browser speech, toggleable) in English,
+Hindi, or Tamil - pick the language in the header. Training and
+model-registry operations stay on the API (see `/docs`).
 
 ## API
 
@@ -58,7 +60,10 @@ Uploads are multipart `file` (images ≤ 10 MB, video ≤ 100 MB).
 Inference responses include a `narration` string, e.g.
 `"Found 2 people and 1 dog. Found Messi."` — human faces are named when
 recognized (`Messi`) or reported as unknown persons; animals come from
-object detection (`dog`, `cat`, …).
+object detection (`dog`, `cat`, …). Pass `?lang=hi` or `?lang=ta`
+(video: `lang` form field) for a Hindi/Tamil sentence frame; object
+class names stay in English in every language. Unknown values fall
+back to `en`.
 
 ## Fine-tuning
 

@@ -13,8 +13,8 @@ from app.services.face_db import FaceDatabase
 from app.services import history as history_store
 from app.services.narration import (
     describe_combined,
-    describe_faces,
-    describe_objects,
+    describe_faces_sentence,
+    describe_objects_sentence,
 )
 from app.utils.drawing import draw_detections, draw_faces
 from app.utils.image import encode_jpeg, to_base64_jpeg
@@ -34,6 +34,7 @@ class InferenceService:
         iou: float | None = None,
         return_image: bool = True,
         log_history: bool = True,
+        lang: str = "en",
     ) -> dict:
         t0 = time.perf_counter()
         dets = self.objects.predict(image_bgr, conf=conf, iou=iou)
@@ -57,12 +58,12 @@ class InferenceService:
         if log_history:
             out["run_id"] = self._log("objects", image_bgr, len(dets), 0, 0,
                                       round(dt, 1), out["detections"][:10])
-        o = describe_objects(out["detections"])
-        out["narration"] = f"Found {o}." if o else "No objects detected."
+        out["narration"] = describe_objects_sentence(out["detections"], lang=lang)
         return out
 
     # -- faces ---------------------------------------------------------
-    def detect_faces(self, image_bgr: np.ndarray, return_image: bool = True) -> dict:
+    def detect_faces(self, image_bgr: np.ndarray, return_image: bool = True,
+                       lang: str = "en") -> dict:
         t0 = time.perf_counter()
         faces = self.faces.detect(image_bgr)
         dt = (time.perf_counter() - t0) * 1000
@@ -80,8 +81,7 @@ class InferenceService:
             out["annotated_image"] = to_base64_jpeg(draw_faces(image_bgr, faces))
         out["run_id"] = self._log("faces", image_bgr, 0, len(payload), 0,
                                   round(dt, 1), None)
-        f = describe_faces(payload)
-        out["narration"] = f"Found {f}." if f else "No faces detected."
+        out["narration"] = describe_faces_sentence(payload, lang=lang)
         return out
 
     def recognize_faces(
@@ -90,6 +90,7 @@ class InferenceService:
         threshold: float | None = None,
         return_image: bool = True,
         log_history: bool = False,
+        lang: str = "en",
     ) -> dict:
         thr = config.FACE_MATCH_THRESH if threshold is None else float(threshold)
         t0 = time.perf_counter()
@@ -129,8 +130,7 @@ class InferenceService:
             matched = sum(1 for r in results if r["matched"])
             out["run_id"] = self._log("faces", image_bgr, 0, len(results),
                                       matched, round(dt, 1), None)
-        f = describe_faces(results)
-        out["narration"] = f"Found {f}." if f else "No faces detected."
+        out["narration"] = describe_faces_sentence(results, lang=lang)
         return out
 
     # -- combined ------------------------------------------------------
@@ -142,12 +142,14 @@ class InferenceService:
         threshold: float | None = None,
         return_image: bool = True,
         log_history: bool = True,
+        lang: str = "en",
     ) -> dict:
         # Each branch degrades gracefully so a face-only (or object-only)
         # deployment still returns useful results instead of a 500.
         try:
             objects = self.detect_objects(image_bgr, conf=conf, iou=iou,
-                                          return_image=False, log_history=False)
+                                          return_image=False, log_history=False,
+                                          lang=lang)
             obj_err = None
         except Exception as exc:  # noqa: BLE001
             objects = {"count": 0, "detections": [], "inference_ms": 0.0,
@@ -156,7 +158,8 @@ class InferenceService:
             objects["error"] = obj_err
         try:
             faces = self.recognize_faces(image_bgr, threshold=threshold,
-                                         return_image=False, log_history=False)
+                                         return_image=False, log_history=False,
+                                         lang=lang)
             face_err = None
         except Exception as exc:  # noqa: BLE001
             faces = {"count": 0, "faces": [], "inference_ms": 0.0,
@@ -188,7 +191,8 @@ class InferenceService:
                 ],
             )
             out["annotated_image"] = to_base64_jpeg(tmp)
-        out["narration"] = describe_combined(objects["detections"], faces["faces"])
+        out["narration"] = describe_combined(objects["detections"], faces["faces"],
+                                                  lang=lang)
         if log_history:
             matched = sum(1 for f in faces["faces"] if f.get("matched"))
             out["run_id"] = self._log(

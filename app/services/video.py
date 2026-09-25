@@ -30,6 +30,7 @@ def process_video(
     conf: float | None = None,
     threshold: float | None = None,
     max_frames: int | None = None,
+    lang: str = "en",
 ) -> dict:
     svc = get_inference_service()
     cap = cv2.VideoCapture(src_path)
@@ -149,7 +150,7 @@ def process_video(
         "output_size": [out_w, out_h],
         "class_counts": top_classes,
         "people_counts": top_people,
-        "narration": describe_video(processed, top_classes, top_people),
+        "narration": describe_video(processed, top_classes, top_people, lang=lang),
         "timeline": timeline[:: max(1, len(timeline) // 120)],  # <= ~120 points for charts
         "thumbnail": thumb_b64,
         "download": f"/api/jobs/{job.id}/download",

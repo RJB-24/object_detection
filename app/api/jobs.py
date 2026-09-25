@@ -58,6 +58,7 @@ async def analyze_video(
     frame_stride: int = Form(default=5),
     conf: float | None = Form(default=None),
     threshold: float | None = Form(default=None),
+    lang: str = Form(default="en"),
 ):
     """Submit a video for background analysis. Returns a job to poll."""
     if mode not in ("objects", "faces", "combined"):
@@ -78,7 +79,7 @@ async def analyze_video(
         try:
             return process_video(job, str(src), mode=mode,
                                  frame_stride=frame_stride, conf=conf,
-                                 threshold=threshold)
+                                 threshold=threshold, lang=lang)
         finally:
             try:
                 src.unlink(missing_ok=True)

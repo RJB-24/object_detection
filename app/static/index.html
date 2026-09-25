@@ -48,6 +48,9 @@
   .chip button:hover { color: var(--bad); }
   .inline { display: flex; gap: 8px; } .inline input { flex: 1; } .inline button { width: auto; white-space: nowrap; }
   .strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+  .pbar { height: 6px; background: var(--line); border-radius: 999px; margin-top: 8px; display: none; overflow: hidden; }
+  .pbar > div { height: 100%; background: var(--accent); border-radius: 999px; width: 0; transition: width 0.4s; }
+  .btn2:disabled { opacity: 0.5; cursor: wait; }
   .thumb { flex: 0 0 auto; width: 132px; font-size: 11px; color: var(--muted); }
   .thumb img { width: 132px; height: 84px; object-fit: cover; border-radius: 6px; border: 1px solid var(--line); display: block; }
   footer { text-align: center; color: var(--muted); font-size: 12px; }
@@ -60,6 +63,11 @@
     <h1>VisionAI</h1>
     <p>object detection + face recognition</p>
     <span class="sp"></span>
+    <select id="lang" title="Narration language" style="font:inherit;font-size:12px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 8px;color:var(--muted)">
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+      <option value="ta">தமிழ்</option>
+    </select>
     <span class="pill" id="st">…</span>
     <a class="pill" href="/docs" style="text-decoration:none">API docs</a>
   </header>
@@ -109,11 +117,28 @@
   </section>
 
   <section>
+    <h2>Video</h2>
+    <div class="inline">
+      <input type="file" id="vf" accept="video/*" hidden>
+      <button class="btn2" id="vpick">Choose video…</button>
+      <select id="vmode" style="max-width:150px">
+        <option value="combined">Objects + faces</option>
+        <option value="objects">Objects only</option>
+        <option value="faces">Faces only</option>
+      </select>
+      <button class="btn2" id="vrun" style="border-color:var(--accent);color:var(--accent);font-weight:600">Analyze video</button>
+    </div>
+    <div class="msg" id="vmsg"></div>
+    <div class="pbar" id="vbarWrap"><div id="vbar"></div></div>
+    <div id="vout" style="margin-top:10px"></div>
+  </section>
+
+  <section>
     <h2>Recent runs</h2>
     <div class="strip" id="strip"><span style="color:var(--muted);font-size:13px">None yet.</span></div>
   </section>
 
-  <footer>Video, training and history APIs stay available — see <a href="/docs">/docs</a>.</footer>
+  <footer>Training and model-registry APIs stay available — see <a href="/docs">/docs</a>.</footer>
 </main>
 
 <script>
@@ -160,7 +185,7 @@ $("run").onclick = async () => {
   if (!file) { msg.textContent = "Choose an image first."; msg.classList.add("err"); return; }
   const mode = $("mode").value;
   const ep = mode === "objects" ? "/api/detect/objects" : mode === "faces" ? "/api/recognize/faces" : "/api/analyze";
-  const q = new URLSearchParams({ return_image: "true", conf: $("conf").value, threshold: $("thr").value });
+  const q = new URLSearchParams({ return_image: "true", conf: $("conf").value, threshold: $("thr").value, lang: $("lang").value });
   const fd = new FormData();
   fd.append("file", file);
   try { speechSynthesis.cancel(); } catch {}
@@ -177,12 +202,18 @@ $("run").onclick = async () => {
 
 function esc(s) { return String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m])); }
 
+const VOICE_LANG = { en: "en", hi: "hi", ta: "ta" };
+try { speechSynthesis.getVoices(); } catch {}
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
 function speak(text) {
   try {
     speechSynthesis.cancel();
     if (!$("speak").checked || !text) return;
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 0.95;
+    const want = VOICE_LANG[$("lang").value] || "en";
+    const v = speechSynthesis.getVoices().find((x) => (x.lang || "").toLowerCase().startsWith(want));
+    if (v) { u.voice = v; u.lang = v.lang; }
     speechSynthesis.speak(u);
   } catch { /* speech unsupported — narration text still shows */ }
 }
@@ -268,6 +299,60 @@ $("cal").onclick = async () => {
     msg.classList.add("ok");
   } catch (e) { msg.textContent = e.message; msg.classList.add("err"); }
 };
+
+// video
+let vfile = null, vpoll = null;
+$("vpick").onclick = () => $("vf").click();
+$("vf").onchange = (e) => {
+  vfile = e.target.files[0] || null;
+  $("vmsg").className = "msg";
+  $("vmsg").textContent = vfile ? vfile.name : "";
+};
+$("vrun").onclick = async () => {
+  const msg = $("vmsg");
+  msg.className = "msg";
+  if (!vfile) { msg.textContent = "Choose a video first."; msg.classList.add("err"); return; }
+  if (vpoll) clearInterval(vpoll);
+  const fd = new FormData();
+  fd.append("file", vfile);
+  fd.append("mode", $("vmode").value);
+  fd.append("lang", $("lang").value);
+  try { speechSynthesis.cancel(); } catch {}
+  $("vrun").disabled = true;
+  $("vout").innerHTML = "";
+  try {
+    const sub = await j(await fetch("/api/video/analyze", { method: "POST", body: fd }));
+    msg.textContent = "Queued…";
+    $("vbarWrap").style.display = "block";
+    $("vbar").style.width = "0";
+    vpoll = setInterval(async () => {
+      try {
+        const jb = await j(await fetch("/api/jobs/" + sub.job_id));
+        const pct = Math.round((jb.progress || 0) * 100);
+        $("vbar").style.width = pct + "%";
+        msg.textContent = jb.status === "running" ? `Analyzing… ${pct}%` : jb.status + "…";
+        if (jb.status === "done" || jb.status === "failed") {
+          clearInterval(vpoll); vpoll = null;
+          $("vrun").disabled = false;
+          if (jb.status === "done") { renderVideo(jb.result); msg.textContent = ""; }
+          else { msg.textContent = jb.error || "Video analysis failed."; msg.classList.add("err"); }
+        }
+      } catch (e) { clearInterval(vpoll); vpoll = null; $("vrun").disabled = false; msg.textContent = e.message; msg.classList.add("err"); }
+    }, 1500);
+  } catch (e) { msg.textContent = e.message; msg.classList.add("err"); $("vrun").disabled = false; }
+};
+
+function renderVideo(r) {
+  speak(r.narration);
+  let h = "";
+  if (r.narration) h += `<div class="meta" style="font-style:italic">“${esc(r.narration)}”</div>`;
+  if (r.thumbnail) h += `<img src="${r.thumbnail}" alt="video thumbnail" style="max-width:100%;max-height:260px;border-radius:6px;border:1px solid var(--line)">`;
+  const chips = [...Object.entries(r.class_counts || {}).map(([k, v]) => `<span class="chip">${esc(k)} ×${v}</span>`),
+    ...Object.entries(r.people_counts || {}).map(([k, v]) => `<span class="chip" style="border-color:var(--accent)">${esc(k)} ×${v}</span>`)];
+  if (chips.length) h += `<div class="chips">${chips.join("")}</div>`;
+  h += `<div class="meta">${r.frames_analyzed} frames · ${r.src_fps} fps · <a href="${r.download}">download annotated video</a></div>`;
+  $("vout").innerHTML = h;
+}
 
 // recent
 async function loadRecent() {
