@@ -11,6 +11,11 @@ from app.detectors.face import get_face_engine
 from app.detectors.object_detector import get_object_detector
 from app.services.face_db import FaceDatabase
 from app.services import history as history_store
+from app.services.narration import (
+    describe_combined,
+    describe_faces,
+    describe_objects,
+)
 from app.utils.drawing import draw_detections, draw_faces
 from app.utils.image import encode_jpeg, to_base64_jpeg
 
@@ -52,6 +57,8 @@ class InferenceService:
         if log_history:
             out["run_id"] = self._log("objects", image_bgr, len(dets), 0, 0,
                                       round(dt, 1), out["detections"][:10])
+        o = describe_objects(out["detections"])
+        out["narration"] = f"Found {o}." if o else "No objects detected."
         return out
 
     # -- faces ---------------------------------------------------------
@@ -71,6 +78,10 @@ class InferenceService:
                      "inference_ms": round(dt, 1)}
         if return_image:
             out["annotated_image"] = to_base64_jpeg(draw_faces(image_bgr, faces))
+        out["run_id"] = self._log("faces", image_bgr, 0, len(payload), 0,
+                                  round(dt, 1), None)
+        f = describe_faces(payload)
+        out["narration"] = f"Found {f}." if f else "No faces detected."
         return out
 
     def recognize_faces(
@@ -114,6 +125,12 @@ class InferenceService:
         }
         if return_image:
             out["annotated_image"] = to_base64_jpeg(draw_faces(image_bgr, draw_list))
+        if log_history:
+            matched = sum(1 for r in results if r["matched"])
+            out["run_id"] = self._log("faces", image_bgr, 0, len(results),
+                                      matched, round(dt, 1), None)
+        f = describe_faces(results)
+        out["narration"] = f"Found {f}." if f else "No faces detected."
         return out
 
     # -- combined ------------------------------------------------------
@@ -171,6 +188,7 @@ class InferenceService:
                 ],
             )
             out["annotated_image"] = to_base64_jpeg(tmp)
+        out["narration"] = describe_combined(objects["detections"], faces["faces"])
         if log_history:
             matched = sum(1 for f in faces["faces"] if f.get("matched"))
             out["run_id"] = self._log(

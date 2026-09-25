@@ -83,6 +83,9 @@
           <input type="range" id="thr" min="0.2" max="0.7" step="0.005" value="0.363">
         </label>
         <button class="btn" id="run">Analyze</button>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);margin-top:8px">
+          <input type="checkbox" id="speak" checked style="accent-color:var(--accent)"> Speak results aloud
+        </label>
         <div class="msg" id="runMsg"></div>
       </div>
       <div id="result"><p style="color:var(--muted);font-size:13px;margin:0">Result appears here.</p></div>
@@ -160,6 +163,7 @@ $("run").onclick = async () => {
   const q = new URLSearchParams({ return_image: "true", conf: $("conf").value, threshold: $("thr").value });
   const fd = new FormData();
   fd.append("file", file);
+  try { speechSynthesis.cancel(); } catch {}
   $("run").disabled = true;
   msg.textContent = "Analyzing…";
   try {
@@ -173,12 +177,25 @@ $("run").onclick = async () => {
 
 function esc(s) { return String(s).replace(/[&<>"]/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m])); }
 
+function speak(text) {
+  try {
+    speechSynthesis.cancel();
+    if (!$("speak").checked || !text) return;
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+  } catch { /* speech unsupported — narration text still shows */ }
+}
+$("speak").onchange = (e) => { if (!e.target.checked) { try { speechSynthesis.cancel(); } catch {} } };
+
 function render(d, mode) {
   let objs = [], faces = [], ms = d.inference_ms, img = d.annotated_image;
   if (d.objects) { objs = d.objects.detections || []; faces = d.faces.faces || []; }
   else if (d.detections) { objs = d.detections; }
   else { faces = d.faces || []; }
+  speak(d.narration);
   let h = "";
+  if (d.narration) h += `<div class="meta" style="font-style:italic">“${esc(d.narration)}”</div>`;
   if (img) h += `<img src="${img}" alt="result">`;
   h += `<div class="meta">${ms} ms · ${objs.length} objects · ${faces.length} faces</div><div class="cols"><div><h3>Objects</h3>`;
   h += objs.length

@@ -15,6 +15,7 @@ from app import config
 from app.detectors.face import FaceEngineError
 from app.services.inference import get_inference_service
 from app.services.jobs import Job
+from app.services.narration import describe_video
 from app.utils.drawing import draw_detections, draw_faces
 from app.utils.image import to_base64_jpeg
 
@@ -137,6 +138,8 @@ def process_video(
     thumb_b64 = to_base64_jpeg(thumb) if thumb is not None else None
 
     job.log(f"Done: {processed} frames analyzed")
+    top_classes = dict(sorted(class_counts.items(), key=lambda kv: -kv[1])[:15])
+    top_people = dict(sorted(people.items(), key=lambda kv: -kv[1]))
     return {
         "mode": mode,
         "src_fps": round(fps, 2),
@@ -144,8 +147,9 @@ def process_video(
         "frames_analyzed": processed,
         "frame_stride": frame_stride,
         "output_size": [out_w, out_h],
-        "class_counts": dict(sorted(class_counts.items(), key=lambda kv: -kv[1])[:15]),
-        "people_counts": dict(sorted(people.items(), key=lambda kv: -kv[1])),
+        "class_counts": top_classes,
+        "people_counts": top_people,
+        "narration": describe_video(processed, top_classes, top_people),
         "timeline": timeline[:: max(1, len(timeline) // 120)],  # <= ~120 points for charts
         "thumbnail": thumb_b64,
         "download": f"/api/jobs/{job.id}/download",

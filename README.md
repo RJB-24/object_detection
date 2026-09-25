@@ -38,7 +38,8 @@ Interactive API docs: `/docs`.
 
 A single dependency-free page at `/`: analyze images (combined/objects/faces),
 enroll and manage known faces, one-click threshold calibration, and recent
-runs. Video, training, and registry operations stay on the API (see `/docs`).
+runs. Results include a spoken summary (browser speech, toggleable).
+Video, training, and registry operations stay on the API (see `/docs`).
 
 ## API
 
@@ -54,6 +55,10 @@ runs. Video, training, and registry operations stay on the API (see `/docs`).
 | `GET /api/training/status`, `POST /api/training/{demo-prepare,validate,start}` | Fine-tuning |
 
 Uploads are multipart `file` (images ≤ 10 MB, video ≤ 100 MB).
+Inference responses include a `narration` string, e.g.
+`"Found 2 people and 1 dog. Found Messi."` — human faces are named when
+recognized (`Messi`) or reported as unknown persons; animals come from
+object detection (`dog`, `cat`, …).
 
 ## Fine-tuning
 
